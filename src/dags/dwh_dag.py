@@ -52,6 +52,7 @@ def load_global_metrics_dwh(date, conn_info=conn_info):
                     and t.currency_code = c.currency_code
                 where
                     t.status = 'done'
+                    and t.account_number_from>0
                     and t.transaction_dt::date = '{date}'::date-1
                 union all
                 select
@@ -64,6 +65,7 @@ def load_global_metrics_dwh(date, conn_info=conn_info):
                 where
                     currency_code = 420
                     and status = 'done'
+                    and account_number_from>0
                     and transaction_dt::date = '{date}'::date-1
                 )
                 select
