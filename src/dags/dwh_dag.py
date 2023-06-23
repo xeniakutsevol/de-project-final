@@ -89,8 +89,8 @@ def load_global_metrics_dwh(date, conn_info=conn_info):
                 """
             )
             res = cur.fetchall()
-        except vertica_python.errors.Error:
-            raise
+        except vertica_python.errors.Error as e:
+            raise Exception(f"An error occurred during global metrics load: {str(e)}")
         return res
 
 
