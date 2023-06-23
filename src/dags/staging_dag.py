@@ -1,3 +1,5 @@
+import json
+
 import boto3
 import pendulum
 import vertica_python
@@ -5,13 +7,16 @@ from airflow.decorators import dag
 from airflow.models import Variable
 from airflow.operators.python import PythonOperator
 
-AWS_ACCESS_KEY_ID = Variable.get("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = Variable.get("AWS_SECRET_ACCESS_KEY")
-HOST = Variable.get("HOST")
-PORT = Variable.get("PORT")
-USER = Variable.get("USER")
-PASSWORD = Variable.get("PASSWORD")
-DB = Variable.get("DB")
+with open("../../../lessons/dags/config.json") as config_file:
+    config = json.load(config_file)
+
+AWS_ACCESS_KEY_ID = config["aws_access_key_id"]
+AWS_SECRET_ACCESS_KEY = config["aws_secret_access_key"]
+HOST = config["host"]
+PORT = config["port"]
+USER = config["user"]
+PASSWORD = config["password"]
+DB = config["db"]
 
 conn_info = {
     "host": HOST,
@@ -32,9 +37,7 @@ def fetch_s3_file(bucket: str, key: str):
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
     )
 
-    s3_client.download_file(
-        Bucket=bucket, Key=key, Filename=f"../../../data/{key}"
-        )
+    s3_client.download_file(Bucket=bucket, Key=key, Filename=f"../../../data/{key}")
 
 
 def load_currencies_staging(conn_info=conn_info):
@@ -51,8 +54,8 @@ def load_currencies_staging(conn_info=conn_info):
                 buffer_size=65536,
             )
             res = cur.fetchall()
-        except vertica_python.errors.Error:
-            raise
+        except vertica_python.errors.Error as e:
+            raise Exception(f"An error occurred during currencies data load: {str(e)}")
         return res
 
 
@@ -71,13 +74,18 @@ def load_transactions_staging(file_num, conn_info=conn_info):
                 buffer_size=65536,
             )
             res = cur.fetchall()
-        except vertica_python.errors.Error:
-            raise
+        except vertica_python.errors.Error as e:
+            raise Exception(
+                f"An error occurred during transactions data load: {str(e)}"
+            )
         return res
 
 
-@dag(schedule_interval="0 12 1 * *", start_date=pendulum.parse("2022-10-01"),
-     catchup=False)
+@dag(
+    schedule_interval="0 12 1 * *",
+    start_date=pendulum.parse("2022-10-01"),
+    catchup=False,
+)
 def staging_dag():
     fetch_currencies_task = PythonOperator(
         task_id="fetch_currencies",

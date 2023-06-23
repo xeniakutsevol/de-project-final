@@ -129,3 +129,6 @@ dmypy.json
 
 # Vscode
 .vscode/
+
+# Connection config
+src/dags/config.json

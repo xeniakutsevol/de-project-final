@@ -1,16 +1,21 @@
+import json
+
 import pendulum
 import vertica_python
 from airflow.decorators import dag
 from airflow.models import Variable
 from airflow.operators.python import PythonOperator
 
-AWS_ACCESS_KEY_ID = Variable.get("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = Variable.get("AWS_SECRET_ACCESS_KEY")
-HOST = Variable.get("HOST")
-PORT = Variable.get("PORT")
-USER = Variable.get("USER")
-PASSWORD = Variable.get("PASSWORD")
-DB = Variable.get("DB")
+with open("../../../lessons/dags/config.json") as config_file:
+    config = json.load(config_file)
+
+AWS_ACCESS_KEY_ID = config["aws_access_key_id"]
+AWS_SECRET_ACCESS_KEY = config["aws_secret_access_key"]
+HOST = config["host"]
+PORT = config["port"]
+USER = config["user"]
+PASSWORD = config["password"]
+DB = config["db"]
 
 conn_info = {
     "host": HOST,
@@ -89,8 +94,11 @@ def load_global_metrics_dwh(date, conn_info=conn_info):
         return res
 
 
-@dag(schedule_interval="0 12 * * *", start_date=pendulum.parse("2022-10-01"),
-     catchup=True)
+@dag(
+    schedule_interval="0 12 * * *",
+    start_date=pendulum.parse("2022-10-01"),
+    catchup=True,
+)
 def dwh_dag():
     load_global_metrics_task = PythonOperator(
         task_id="load_global_metrics",
